@@ -211,6 +211,10 @@ impl AccessTokenProvider for FakeTokenProvider {
 ///    - `GOOGLE_APPLICATION_CREDENTIALS` env var (path to a JSON credentials file), then
 ///    - Well-known ADC path: `~/.config/gcloud/application_default_credentials.json`
 ///      (populated by `gcloud auth application-default login`)
+///
+/// When `GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER` is set and the resolved credential
+/// is a service account, the user's email is passed as the JWT `subject` to perform
+/// domain-wide delegation. Ignored for user credentials.
 pub async fn get_token(scopes: &[&str]) -> anyhow::Result<String> {
     // 0. Direct token from env var (highest priority, bypasses all credential loading)
     if let Ok(token) = std::env::var("GOOGLE_WORKSPACE_CLI_TOKEN") {
@@ -220,13 +224,50 @@ pub async fn get_token(scopes: &[&str]) -> anyhow::Result<String> {
     }
 
     let creds_file = std::env::var("GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE").ok();
+    let impersonated_user = read_impersonated_user();
     let config_dir = crate::auth_commands::config_dir();
     let enc_path = credential_store::encrypted_credentials_path();
     let default_path = config_dir.join("credentials.json");
     let token_cache = config_dir.join("token_cache.json");
 
     let creds = load_credentials_inner(creds_file.as_deref(), &enc_path, &default_path).await?;
-    get_token_inner(scopes, creds, &token_cache).await
+    get_token_inner(scopes, creds, &token_cache, impersonated_user.as_deref()).await
+}
+
+/// Read the domain-wide delegation subject from `GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER`.
+///
+/// Returns `None` when the variable is unset, empty, or only whitespace, so that
+/// surrounding code can treat all "no impersonation" cases identically.
+fn read_impersonated_user() -> Option<String> {
+    let raw = std::env::var("GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER").ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Build the per-identity SA token cache filename.
+///
+/// The filename embeds a short SHA-256 of `<client_email>:<impersonated_user>` so
+/// that switching SA keys or impersonation targets uses an isolated cache instead
+/// of returning a stale token minted for a different identity.
+fn sa_cache_filename(client_email: &str, impersonated_user: Option<&str>) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(client_email.as_bytes());
+    hasher.update(b":");
+    hasher.update(impersonated_user.unwrap_or("").as_bytes());
+    let hex = format!("{:x}", hasher.finalize());
+    format!("sa_{}_token_cache.json", &hex[..16])
+}
+
+/// Predicate matching all per-identity SA token cache filenames produced by
+/// [`sa_cache_filename`], plus the legacy `sa_token_cache.json` from earlier
+/// versions. Used by logout and corrupt-credentials recovery to sweep stale files.
+pub(crate) fn is_sa_token_cache_filename(name: &str) -> bool {
+    name.starts_with("sa_") && name.ends_with("_token_cache.json")
 }
 
 /// Check if HTTP proxy environment variables are set
@@ -244,6 +285,7 @@ async fn get_token_inner(
     scopes: &[&str],
     creds: Credential,
     token_cache_path: &std::path::Path,
+    impersonated_user: Option<&str>,
 ) -> anyhow::Result<String> {
     match creds {
         Credential::AuthorizedUser(ref secret) => {
@@ -274,14 +316,15 @@ async fn get_token_inner(
                 .to_string())
         }
         Credential::ServiceAccount(key) => {
-            let tc_filename = token_cache_path
-                .file_name()
-                .map(|f| f.to_string_lossy().to_string())
-                .unwrap_or_else(|| "token_cache.json".to_string());
-            let sa_cache = token_cache_path.with_file_name(format!("sa_{tc_filename}"));
-            let builder = yup_oauth2::ServiceAccountAuthenticator::builder(key).with_storage(
+            let sa_cache = token_cache_path
+                .with_file_name(sa_cache_filename(&key.client_email, impersonated_user));
+            let mut builder = yup_oauth2::ServiceAccountAuthenticator::builder(key).with_storage(
                 Box::new(crate::token_storage::EncryptedTokenStorage::new(sa_cache)),
             );
+
+            if let Some(user) = impersonated_user {
+                builder = builder.subject(user.to_string());
+            }
 
             let auth = builder
                 .build()
@@ -372,15 +415,34 @@ async fn load_credentials_inner(
                         enc_path.display()
                     );
                 }
-                // Also remove stale token caches that used the old key.
-                for cache_file in ["token_cache.json", "sa_token_cache.json"] {
-                    let path = enc_path.with_file_name(cache_file);
-                    if let Err(err) = tokio::fs::remove_file(&path).await {
-                        if err.kind() != std::io::ErrorKind::NotFound {
-                            eprintln!(
-                                "Warning: failed to remove stale token cache '{}': {err}",
-                                path.display()
-                            );
+                // Also remove stale token caches that used the old key. Includes
+                // every per-identity SA cache (`sa_<hash>_token_cache.json`) plus
+                // the user token cache.
+                let user_cache = enc_path.with_file_name("token_cache.json");
+                if let Err(err) = tokio::fs::remove_file(&user_cache).await {
+                    if err.kind() != std::io::ErrorKind::NotFound {
+                        eprintln!(
+                            "Warning: failed to remove stale token cache '{}': {err}",
+                            user_cache.display()
+                        );
+                    }
+                }
+                if let Some(parent) = enc_path.parent() {
+                    if let Ok(mut entries) = tokio::fs::read_dir(parent).await {
+                        while let Ok(Some(entry)) = entries.next_entry().await {
+                            let name = entry.file_name();
+                            if !is_sa_token_cache_filename(&name.to_string_lossy()) {
+                                continue;
+                            }
+                            let path = entry.path();
+                            if let Err(err) = tokio::fs::remove_file(&path).await {
+                                if err.kind() != std::io::ErrorKind::NotFound {
+                                    eprintln!(
+                                        "Warning: failed to remove stale token cache '{}': {err}",
+                                        path.display()
+                                    );
+                                }
+                            }
                         }
                     }
                 }
@@ -500,6 +562,71 @@ mod tests {
             "http://proxy.internal:8080",
         ));
         assert!(has_proxy_env());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn read_impersonated_user_returns_none_when_unset() {
+        let _guard = EnvVarGuard::remove("GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER");
+        assert_eq!(read_impersonated_user(), None);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn read_impersonated_user_returns_none_when_empty_or_whitespace() {
+        let _guard = EnvVarGuard::set("GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER", "");
+        assert_eq!(read_impersonated_user(), None);
+        let _guard2 = EnvVarGuard::set("GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER", "   \t  ");
+        assert_eq!(read_impersonated_user(), None);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn read_impersonated_user_trims_and_returns_value() {
+        let _guard = EnvVarGuard::set(
+            "GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER",
+            "  user@example.com  ",
+        );
+        assert_eq!(
+            read_impersonated_user(),
+            Some("user@example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn sa_cache_filename_is_deterministic() {
+        let a = sa_cache_filename("svc@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        let b = sa_cache_filename("svc@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn sa_cache_filename_distinguishes_impersonation() {
+        let none = sa_cache_filename("svc@p.iam.gserviceaccount.com", None);
+        let alice = sa_cache_filename("svc@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        let bob = sa_cache_filename("svc@p.iam.gserviceaccount.com", Some("bob@e.com"));
+        assert_ne!(none, alice);
+        assert_ne!(none, bob);
+        assert_ne!(alice, bob);
+    }
+
+    #[test]
+    fn sa_cache_filename_distinguishes_service_account() {
+        let svc1 = sa_cache_filename("svc1@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        let svc2 = sa_cache_filename("svc2@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        assert_ne!(svc1, svc2);
+    }
+
+    #[test]
+    fn sa_cache_filename_matches_cleanup_predicate() {
+        let name = sa_cache_filename("svc@p.iam.gserviceaccount.com", Some("alice@e.com"));
+        assert!(is_sa_token_cache_filename(&name));
+        // Legacy filename from prior versions must also match the sweep predicate.
+        assert!(is_sa_token_cache_filename("sa_token_cache.json"));
+        // Negative cases.
+        assert!(!is_sa_token_cache_filename("token_cache.json"));
+        assert!(!is_sa_token_cache_filename("credentials.enc"));
+        assert!(!is_sa_token_cache_filename("sa_token_cache.json.bak"));
     }
 
     #[test]

@@ -1457,13 +1457,28 @@ fn handle_logout() -> Result<(), GwsError> {
     let plain_path = plain_credentials_path();
     let enc_path = credential_store::encrypted_credentials_path();
     let token_cache = token_cache_path();
-    let sa_token_cache = config_dir().join("sa_token_cache.json");
+    let dir = config_dir();
 
     let mut removed = Vec::new();
 
-    for path in [&enc_path, &plain_path, &token_cache, &sa_token_cache] {
+    for path in [&enc_path, &plain_path, &token_cache] {
         if path.exists() {
             std::fs::remove_file(path).map_err(|e| {
+                GwsError::Validation(format!("Failed to remove {}: {e}", path.display()))
+            })?;
+            removed.push(path.display().to_string());
+        }
+    }
+
+    // Sweep all per-identity SA token caches (and the legacy `sa_token_cache.json`).
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            if !crate::auth::is_sa_token_cache_filename(&name.to_string_lossy()) {
+                continue;
+            }
+            let path = entry.path();
+            std::fs::remove_file(&path).map_err(|e| {
                 GwsError::Validation(format!("Failed to remove {}: {e}", path.display()))
             })?;
             removed.push(path.display().to_string());
