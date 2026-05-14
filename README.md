@@ -235,6 +235,11 @@ Enable these APIs in **Google Cloud Console → APIs & Services → Library** fo
 | Google Meet | `meet.googleapis.com` |
 | Cloud Pub/Sub | `pubsub.googleapis.com` |
 
+```bash
+gcloud services enable drive.googleapis.com sheets.googleapis.com gmail.googleapis.com calendar-json.googleapis.com docs.googleapis.com slides.googleapis.com tasks.googleapis.com people.googleapis.com chat.googleapis.com vault.googleapis.com groupssettings.googleapis.com reseller.googleapis.com licensing.googleapis.com script.googleapis.com admin.googleapis.com classroom.googleapis.com cloudidentity.googleapis.com alertcenter.googleapis.com forms.googleapis.com keep.googleapis.com
+gcloud services enable meet.googleapis.com pubsub.googleapis.com
+```
+
 #### Admin Console — OAuth scopes
 
 Grant these scopes in **Google Workspace Admin Console → Security → API controls → Domain-wide delegation → Add new**.
