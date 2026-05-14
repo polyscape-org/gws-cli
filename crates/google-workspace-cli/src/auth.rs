@@ -238,7 +238,7 @@ pub async fn get_token(scopes: &[&str]) -> anyhow::Result<String> {
 ///
 /// Returns `None` when the variable is unset, empty, or only whitespace, so that
 /// surrounding code can treat all "no impersonation" cases identically.
-fn read_impersonated_user() -> Option<String> {
+pub fn read_impersonated_user() -> Option<String> {
     let raw = std::env::var("GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER").ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -246,6 +246,15 @@ fn read_impersonated_user() -> Option<String> {
     } else {
         Some(trimmed.to_string())
     }
+}
+
+/// DWD利用時はimpersonated userのメールアドレス、未設定時は `"me"` を返す。
+///
+/// ヘルパーコマンドが Google API の `users/{userId}/...` パスを構築する際に使用。
+/// DWDサービスアカウント経由では `users/me` が正しく解決されないケースがあるため、
+/// 明示的にメールアドレスを指定する。
+pub fn resolve_user_id() -> String {
+    read_impersonated_user().unwrap_or_else(|| "me".to_string())
 }
 
 /// Build the per-identity SA token cache filename.

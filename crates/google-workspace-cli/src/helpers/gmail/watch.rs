@@ -18,6 +18,7 @@ pub(super) async fn handle_watch(
     }
 
     let client = crate::client::build_client()?;
+    let user_id = crate::auth::resolve_user_id();
     let gmail_token_provider = auth::token_provider(&[GMAIL_SCOPE]);
     let pubsub_token_provider = auth::token_provider(&[PUBSUB_SCOPE]);
 
@@ -146,7 +147,7 @@ pub(super) async fn handle_watch(
         }
 
         let resp = client
-            .post(format!("{GMAIL_API_BASE}/users/me/watch"))
+            .post(format!("{GMAIL_API_BASE}/users/{}/watch", user_id))
             .bearer_auth(&gmail_token)
             .header("Content-Type", "application/json")
             .json(&watch_body)
@@ -188,7 +189,7 @@ pub(super) async fn handle_watch(
 
     // Get initial historyId for tracking
     let profile_resp = client
-        .get(format!("{GMAIL_API_BASE}/users/me/profile"))
+        .get(format!("{GMAIL_API_BASE}/users/{}/profile", user_id))
         .bearer_auth(&gmail_token)
         .send()
         .await
@@ -408,8 +409,9 @@ async fn fetch_and_output_messages(
         .access_token()
         .await
         .context("Failed to get Gmail token")?;
+    let user_id = crate::auth::resolve_user_id();
     let resp = client
-        .get(format!("{gmail_api_base}/users/me/history"))
+        .get(format!("{gmail_api_base}/users/{}/history", user_id))
         .query(&[
             ("startHistoryId", &start_history_id.to_string()),
             ("historyTypes", &"messageAdded".to_string()),
@@ -425,7 +427,8 @@ async fn fetch_and_output_messages(
 
     for msg_id in msg_ids {
         let msg_url = format!(
-            "{gmail_api_base}/users/me/messages/{}",
+            "{gmail_api_base}/users/{}/messages/{}",
+            user_id,
             crate::validate::encode_path_segment(&msg_id),
         );
         let msg_resp = client
