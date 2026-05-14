@@ -369,10 +369,8 @@ pub(super) async fn fetch_message_metadata(
     token: &str,
     message_id: &str,
 ) -> Result<OriginalMessage, GwsError> {
-    let user_id = crate::auth::resolve_user_id();
     let url = format!(
-        "https://gmail.googleapis.com/gmail/v1/users/{}/messages/{}",
-        user_id,
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}",
         crate::validate::encode_path_segment(message_id)
     );
 
@@ -454,13 +452,9 @@ async fn fetch_send_as_identities(
     client: &reqwest::Client,
     token: &str,
 ) -> Result<Vec<SendAsIdentity>, GwsError> {
-    let user_id = crate::auth::resolve_user_id();
     let resp = crate::client::send_with_retry(|| {
         client
-            .get(format!(
-                "https://gmail.googleapis.com/gmail/v1/users/{}/settings/sendAs",
-                user_id
-            ))
+            .get("https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs")
             .bearer_auth(token)
     })
     .await
@@ -697,10 +691,8 @@ async fn fetch_attachment_data(
     message_id: &str,
     attachment_id: &str,
 ) -> Result<Vec<u8>, GwsError> {
-    let user_id = crate::auth::resolve_user_id();
     let url = format!(
-        "https://gmail.googleapis.com/gmail/v1/users/{}/messages/{}/attachments/{}",
-        user_id,
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}/attachments/{}",
         crate::validate::encode_path_segment(message_id),
         crate::validate::encode_path_segment(attachment_id),
     );
@@ -1449,8 +1441,7 @@ pub(super) async fn dispatch_raw_email(
     let draft = matches.get_flag("draft");
     let metadata = build_send_metadata(thread_id, draft);
     let method = resolve_mail_method(doc, draft)?;
-    let user_id = crate::auth::resolve_user_id();
-    let params = json!({ "userId": user_id });
+    let params = json!({ "userId": "me" });
     let params_str = params.to_string();
 
     let (token, auth_method) = match existing_token {

@@ -259,11 +259,7 @@ async fn handle_agenda(matches: &ArgMatches) -> Result<(), GwsError> {
     let calendar_filter = matches.get_one::<String>("calendar");
 
     // 1. List all calendars
-    let user_id = crate::auth::resolve_user_id();
-    let list_url = format!(
-        "https://www.googleapis.com/calendar/v3/users/{}/calendarList",
-        user_id
-    );
+    let list_url = "https://www.googleapis.com/calendar/v3/users/me/calendarList";
     let list_resp = client
         .get(list_url)
         .bearer_auth(&token)
