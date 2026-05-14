@@ -196,6 +196,151 @@ export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE=/path/to/service-account.json
 gws drive files list
 ```
 
+### Domain-Wide Delegation (DWD)
+
+A service account can impersonate Workspace users via domain-wide delegation.
+
+```bash
+export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE=/path/to/service-account.json
+export GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER=user@example.com
+gws calendar +agenda   # runs as user@example.com
+```
+
+#### GCP APIs to enable
+
+Enable these APIs in **Google Cloud Console → APIs & Services → Library** for the project that owns the service account.
+
+| API | ID |
+|---|---|
+| Google Drive | `drive.googleapis.com` |
+| Google Sheets | `sheets.googleapis.com` |
+| Gmail | `gmail.googleapis.com` |
+| Google Calendar | `calendar-json.googleapis.com` |
+| Google Docs | `docs.googleapis.com` |
+| Google Slides | `slides.googleapis.com` |
+| Google Tasks | `tasks.googleapis.com` |
+| People (Contacts) | `people.googleapis.com` |
+| Google Chat | `chat.googleapis.com` |
+| Google Vault | `vault.googleapis.com` |
+| Groups Settings | `groupssettings.googleapis.com` |
+| Reseller | `reseller.googleapis.com` |
+| Licensing | `licensing.googleapis.com` |
+| Apps Script | `script.googleapis.com` |
+| Admin SDK | `admin.googleapis.com` |
+| Classroom | `classroom.googleapis.com` |
+| Cloud Identity | `cloudidentity.googleapis.com` |
+| Alert Center | `alertcenter.googleapis.com` |
+| Google Forms | `forms.googleapis.com` |
+| Google Keep | `keep.googleapis.com` |
+| Google Meet | `meet.googleapis.com` |
+| Cloud Pub/Sub | `pubsub.googleapis.com` |
+
+#### Admin Console — OAuth scopes
+
+Grant these scopes in **Google Workspace Admin Console → Security → API controls → Domain-wide delegation → Add new**.
+
+Enter the service account's Client ID, then paste the scopes below (comma-separated).
+
+<details>
+<summary>All scopes (click to expand)</summary>
+
+**Calendar**
+```
+https://www.googleapis.com/auth/calendar
+https://www.googleapis.com/auth/calendar.readonly
+```
+
+**Gmail**
+```
+https://www.googleapis.com/auth/gmail.modify
+https://www.googleapis.com/auth/gmail.readonly
+https://www.googleapis.com/auth/gmail.compose
+https://www.googleapis.com/auth/gmail.insert
+https://www.googleapis.com/auth/gmail.send
+https://www.googleapis.com/auth/gmail.metadata
+https://www.googleapis.com/auth/gmail.settings.basic
+https://www.googleapis.com/auth/gmail.settings.sharing
+https://www.googleapis.com/auth/gmail.addons.current.message.metadata
+https://www.googleapis.com/auth/gmail.addons.current.message.readonly
+```
+
+**Drive**
+```
+https://www.googleapis.com/auth/drive
+https://www.googleapis.com/auth/drive.readonly
+https://www.googleapis.com/auth/drive.metadata
+https://www.googleapis.com/auth/drive.metadata.readonly
+https://www.googleapis.com/auth/drive.activity
+https://www.googleapis.com/auth/drive.activity.readonly
+https://www.googleapis.com/auth/drive.apps.readonly
+https://www.googleapis.com/auth/drive.meet.readonly
+https://www.googleapis.com/auth/drive.scripts
+```
+
+**Docs / Sheets**
+```
+https://www.googleapis.com/auth/documents
+https://www.googleapis.com/auth/documents.readonly
+https://www.googleapis.com/auth/spreadsheets
+https://www.googleapis.com/auth/spreadsheets.readonly
+```
+
+**Chat**
+```
+https://www.googleapis.com/auth/chat.messages
+https://www.googleapis.com/auth/chat.messages.create
+https://www.googleapis.com/auth/chat.messages.readonly
+https://www.googleapis.com/auth/chat.delete
+https://www.googleapis.com/auth/chat.admin.delete
+https://www.googleapis.com/auth/chat.admin.memberships
+https://www.googleapis.com/auth/chat.admin.memberships.readonly
+https://www.googleapis.com/auth/chat.admin.spaces
+https://www.googleapis.com/auth/chat.admin.spaces.readonly
+https://www.googleapis.com/auth/chat.memberships
+https://www.googleapis.com/auth/chat.memberships.app
+https://www.googleapis.com/auth/chat.memberships.readonly
+https://www.googleapis.com/auth/chat.messages.reactions
+https://www.googleapis.com/auth/chat.messages.reactions.create
+https://www.googleapis.com/auth/chat.messages.reactions.readonly
+https://www.googleapis.com/auth/chat.spaces
+https://www.googleapis.com/auth/chat.spaces.create
+https://www.googleapis.com/auth/chat.spaces.readonly
+https://www.googleapis.com/auth/chat.users.readstate
+https://www.googleapis.com/auth/chat.users.readstate.readonly
+https://www.googleapis.com/auth/chat.users.spacesettings
+https://www.googleapis.com/auth/chat.customemojis
+https://www.googleapis.com/auth/chat.customemojis.readonly
+```
+
+**Tasks**
+```
+https://www.googleapis.com/auth/tasks
+https://www.googleapis.com/auth/tasks.readonly
+```
+
+**Pub/Sub / Cloud Platform**
+```
+https://www.googleapis.com/auth/pubsub
+https://www.googleapis.com/auth/cloud-platform
+```
+
+**User Info**
+```
+https://www.googleapis.com/auth/userinfo.email
+https://www.googleapis.com/auth/userinfo.profile
+```
+
+</details>
+
+<details>
+<summary>Comma-separated (paste into Admin Console)</summary>
+
+```
+https://www.googleapis.com/auth/calendar,https://www.googleapis.com/auth/calendar.readonly,https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.compose,https://www.googleapis.com/auth/gmail.insert,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/gmail.metadata,https://www.googleapis.com/auth/gmail.settings.basic,https://www.googleapis.com/auth/gmail.settings.sharing,https://www.googleapis.com/auth/gmail.addons.current.message.metadata,https://www.googleapis.com/auth/gmail.addons.current.message.readonly,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/drive.readonly,https://www.googleapis.com/auth/drive.metadata,https://www.googleapis.com/auth/drive.metadata.readonly,https://www.googleapis.com/auth/drive.activity,https://www.googleapis.com/auth/drive.activity.readonly,https://www.googleapis.com/auth/drive.apps.readonly,https://www.googleapis.com/auth/drive.meet.readonly,https://www.googleapis.com/auth/drive.scripts,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/documents.readonly,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/spreadsheets.readonly,https://www.googleapis.com/auth/chat.messages,https://www.googleapis.com/auth/chat.messages.create,https://www.googleapis.com/auth/chat.messages.readonly,https://www.googleapis.com/auth/chat.delete,https://www.googleapis.com/auth/chat.admin.delete,https://www.googleapis.com/auth/chat.admin.memberships,https://www.googleapis.com/auth/chat.admin.memberships.readonly,https://www.googleapis.com/auth/chat.admin.spaces,https://www.googleapis.com/auth/chat.admin.spaces.readonly,https://www.googleapis.com/auth/chat.memberships,https://www.googleapis.com/auth/chat.memberships.app,https://www.googleapis.com/auth/chat.memberships.readonly,https://www.googleapis.com/auth/chat.messages.reactions,https://www.googleapis.com/auth/chat.messages.reactions.create,https://www.googleapis.com/auth/chat.messages.reactions.readonly,https://www.googleapis.com/auth/chat.spaces,https://www.googleapis.com/auth/chat.spaces.create,https://www.googleapis.com/auth/chat.spaces.readonly,https://www.googleapis.com/auth/chat.users.readstate,https://www.googleapis.com/auth/chat.users.readstate.readonly,https://www.googleapis.com/auth/chat.users.spacesettings,https://www.googleapis.com/auth/chat.customemojis,https://www.googleapis.com/auth/chat.customemojis.readonly,https://www.googleapis.com/auth/tasks,https://www.googleapis.com/auth/tasks.readonly,https://www.googleapis.com/auth/pubsub,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/userinfo.profile
+```
+
+</details>
+
 ### Pre-obtained Access Token
 
 Useful when another tool (e.g. `gcloud`) already mints tokens for your environment.
