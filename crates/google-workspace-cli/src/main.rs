@@ -299,6 +299,29 @@ async fn run() -> Result<(), GwsError> {
     .map(|_| ())
 }
 
+/// Service Account + Domain-Wide Delegation で impersonate するユーザー認証では
+/// 取得できない（あるいは取得しても 401/403 になる）スコープを判定する。
+///
+/// Chat API の場合:
+/// - `chat.bot` / `chat.import` は Chat App (Bot) 専用 — Bot として認証する場面用で、
+///   ユーザーを impersonate する DWD では `unauthorized_client` になる。
+/// - `chat.app.*` も同じく App 用。
+/// - `chat.admin.*` は管理者向け権限で、通常ユーザーの impersonate では使えない
+///   （`spaces.get` の discovery doc 先頭はこれが入る）。
+///
+/// これらが discovery doc の先頭に並んでいると `select_scope` がトークン取得に失敗するため、
+/// スキップ対象として明示する。
+fn is_dwd_incompatible_scope(scope: &str) -> bool {
+    const PREFIX: &str = "https://www.googleapis.com/auth/";
+    if !scope.starts_with(PREFIX) {
+        return false;
+    }
+    let tail = &scope[PREFIX.len()..];
+    matches!(tail, "chat.bot" | "chat.import")
+        || tail.starts_with("chat.app.")
+        || tail.starts_with("chat.admin.")
+}
+
 /// Select the best scope from a method's scope list.
 ///
 /// Discovery Documents list method scopes as alternatives — any single scope
@@ -306,8 +329,17 @@ async fn run() -> Result<(), GwsError> {
 /// causes issues when restrictive scopes (e.g., `gmail.metadata`) are included,
 /// as the API enforces that scope's restrictions even when broader scopes are
 /// also present.
+///
+/// 加えて、Service Account + DWD で impersonate するユーザー認証では取得できない
+/// bot/app/admin 系スコープ（Chat API の `chat.bot` 等）が先頭に並ぶケースが
+/// あるため、これらは `is_dwd_incompatible_scope` で除外し、互換性のある最初の
+/// スコープを選ぶ。互換スコープがなければ後方互換のため先頭にフォールバックする。
 pub(crate) fn select_scope(scopes: &[String]) -> Option<&str> {
-    scopes.first().map(|s| s.as_str())
+    scopes
+        .iter()
+        .find(|s| !is_dwd_incompatible_scope(s))
+        .map(|s| s.as_str())
+        .or_else(|| scopes.first().map(|s| s.as_str()))
 }
 
 fn parse_pagination_config(matches: &clap::ArgMatches) -> executor::PaginationConfig {
@@ -734,5 +766,77 @@ mod tests {
     fn test_select_scope_empty() {
         let scopes: Vec<String> = vec![];
         assert_eq!(select_scope(&scopes), None);
+    }
+
+    /// Chat API の spaces.list は先頭が chat.bot（Bot 専用）。
+    /// SA + DWD impersonate では unauthorized_client になるので skip し、
+    /// 続く chat.spaces を選ぶこと。
+    #[test]
+    fn test_select_scope_skips_chat_bot() {
+        let scopes = vec![
+            "https://www.googleapis.com/auth/chat.bot".to_string(),
+            "https://www.googleapis.com/auth/chat.spaces".to_string(),
+            "https://www.googleapis.com/auth/chat.spaces.readonly".to_string(),
+        ];
+        assert_eq!(
+            select_scope(&scopes),
+            Some("https://www.googleapis.com/auth/chat.spaces")
+        );
+    }
+
+    /// Chat spaces.get は admin/app/bot が前に並ぶ。impersonate 互換の
+    /// chat.spaces まで進むこと。
+    #[test]
+    fn test_select_scope_skips_admin_app_bot() {
+        let scopes = vec![
+            "https://www.googleapis.com/auth/chat.admin.spaces".to_string(),
+            "https://www.googleapis.com/auth/chat.admin.spaces.readonly".to_string(),
+            "https://www.googleapis.com/auth/chat.app.spaces".to_string(),
+            "https://www.googleapis.com/auth/chat.bot".to_string(),
+            "https://www.googleapis.com/auth/chat.spaces".to_string(),
+            "https://www.googleapis.com/auth/chat.spaces.readonly".to_string(),
+        ];
+        assert_eq!(
+            select_scope(&scopes),
+            Some("https://www.googleapis.com/auth/chat.spaces")
+        );
+    }
+
+    /// spaces.messages.create は chat.bot / chat.import が先頭。chat.messages を選ぶこと。
+    #[test]
+    fn test_select_scope_skips_chat_import() {
+        let scopes = vec![
+            "https://www.googleapis.com/auth/chat.bot".to_string(),
+            "https://www.googleapis.com/auth/chat.import".to_string(),
+            "https://www.googleapis.com/auth/chat.messages".to_string(),
+            "https://www.googleapis.com/auth/chat.messages.create".to_string(),
+        ];
+        assert_eq!(
+            select_scope(&scopes),
+            Some("https://www.googleapis.com/auth/chat.messages")
+        );
+    }
+
+    /// 全て incompatible だった場合は後方互換のため先頭にフォールバック。
+    #[test]
+    fn test_select_scope_all_incompatible_fallback() {
+        let scopes = vec![
+            "https://www.googleapis.com/auth/chat.bot".to_string(),
+            "https://www.googleapis.com/auth/chat.app.spaces".to_string(),
+        ];
+        assert_eq!(
+            select_scope(&scopes),
+            Some("https://www.googleapis.com/auth/chat.bot")
+        );
+    }
+
+    /// 非 chat スコープは現状の「先頭を選ぶ」挙動を維持する。
+    #[test]
+    fn test_select_scope_non_chat_unchanged() {
+        let scopes = vec![
+            "https://mail.google.com/".to_string(),
+            "https://www.googleapis.com/auth/gmail.send".to_string(),
+        ];
+        assert_eq!(select_scope(&scopes), Some("https://mail.google.com/"));
     }
 }

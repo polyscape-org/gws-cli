@@ -335,13 +335,60 @@ https://www.googleapis.com/auth/userinfo.email
 https://www.googleapis.com/auth/userinfo.profile
 ```
 
+**Slides**
+```
+https://www.googleapis.com/auth/presentations
+https://www.googleapis.com/auth/presentations.readonly
+```
+
+**People (Contacts) / Directory**
+```
+https://www.googleapis.com/auth/contacts
+https://www.googleapis.com/auth/contacts.readonly
+https://www.googleapis.com/auth/contacts.other.readonly
+https://www.googleapis.com/auth/directory.readonly
+```
+
+**Forms**
+```
+https://www.googleapis.com/auth/forms.body
+https://www.googleapis.com/auth/forms.body.readonly
+https://www.googleapis.com/auth/forms.responses.readonly
+```
+
+**Meet**
+```
+https://www.googleapis.com/auth/meetings.space.created
+https://www.googleapis.com/auth/meetings.space.readonly
+```
+
+**Classroom**
+```
+https://www.googleapis.com/auth/classroom.courses
+https://www.googleapis.com/auth/classroom.courses.readonly
+```
+
+**Admin Reports**
+```
+https://www.googleapis.com/auth/admin.reports.audit.readonly
+https://www.googleapis.com/auth/admin.reports.usage.readonly
+```
+
+**Chat (Bot / App scopes — discovery doc がこれらを要求するメソッドがあるため掲載。実利用は impersonate 構成と相性が悪い場合あり)**
+```
+https://www.googleapis.com/auth/chat.bot
+https://www.googleapis.com/auth/chat.app.spaces
+https://www.googleapis.com/auth/chat.app.memberships
+https://www.googleapis.com/auth/chat.import
+```
+
 </details>
 
 <details>
 <summary>Comma-separated (paste into Admin Console)</summary>
 
 ```
-https://www.googleapis.com/auth/calendar,https://www.googleapis.com/auth/calendar.readonly,https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.compose,https://www.googleapis.com/auth/gmail.insert,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/gmail.metadata,https://www.googleapis.com/auth/gmail.settings.basic,https://www.googleapis.com/auth/gmail.settings.sharing,https://www.googleapis.com/auth/gmail.addons.current.message.metadata,https://www.googleapis.com/auth/gmail.addons.current.message.readonly,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/drive.readonly,https://www.googleapis.com/auth/drive.metadata,https://www.googleapis.com/auth/drive.metadata.readonly,https://www.googleapis.com/auth/drive.activity,https://www.googleapis.com/auth/drive.activity.readonly,https://www.googleapis.com/auth/drive.apps.readonly,https://www.googleapis.com/auth/drive.meet.readonly,https://www.googleapis.com/auth/drive.scripts,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/documents.readonly,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/spreadsheets.readonly,https://www.googleapis.com/auth/chat.messages,https://www.googleapis.com/auth/chat.messages.create,https://www.googleapis.com/auth/chat.messages.readonly,https://www.googleapis.com/auth/chat.delete,https://www.googleapis.com/auth/chat.admin.delete,https://www.googleapis.com/auth/chat.admin.memberships,https://www.googleapis.com/auth/chat.admin.memberships.readonly,https://www.googleapis.com/auth/chat.admin.spaces,https://www.googleapis.com/auth/chat.admin.spaces.readonly,https://www.googleapis.com/auth/chat.memberships,https://www.googleapis.com/auth/chat.memberships.app,https://www.googleapis.com/auth/chat.memberships.readonly,https://www.googleapis.com/auth/chat.messages.reactions,https://www.googleapis.com/auth/chat.messages.reactions.create,https://www.googleapis.com/auth/chat.messages.reactions.readonly,https://www.googleapis.com/auth/chat.spaces,https://www.googleapis.com/auth/chat.spaces.create,https://www.googleapis.com/auth/chat.spaces.readonly,https://www.googleapis.com/auth/chat.users.readstate,https://www.googleapis.com/auth/chat.users.readstate.readonly,https://www.googleapis.com/auth/chat.users.spacesettings,https://www.googleapis.com/auth/chat.customemojis,https://www.googleapis.com/auth/chat.customemojis.readonly,https://www.googleapis.com/auth/tasks,https://www.googleapis.com/auth/tasks.readonly,https://www.googleapis.com/auth/pubsub,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/userinfo.profile
+https://www.googleapis.com/auth/calendar,https://www.googleapis.com/auth/calendar.readonly,https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.compose,https://www.googleapis.com/auth/gmail.insert,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/gmail.metadata,https://www.googleapis.com/auth/gmail.settings.basic,https://www.googleapis.com/auth/gmail.settings.sharing,https://www.googleapis.com/auth/gmail.addons.current.message.metadata,https://www.googleapis.com/auth/gmail.addons.current.message.readonly,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/drive.readonly,https://www.googleapis.com/auth/drive.metadata,https://www.googleapis.com/auth/drive.metadata.readonly,https://www.googleapis.com/auth/drive.activity,https://www.googleapis.com/auth/drive.activity.readonly,https://www.googleapis.com/auth/drive.apps.readonly,https://www.googleapis.com/auth/drive.meet.readonly,https://www.googleapis.com/auth/drive.scripts,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/documents.readonly,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/spreadsheets.readonly,https://www.googleapis.com/auth/chat.messages,https://www.googleapis.com/auth/chat.messages.create,https://www.googleapis.com/auth/chat.messages.readonly,https://www.googleapis.com/auth/chat.delete,https://www.googleapis.com/auth/chat.admin.delete,https://www.googleapis.com/auth/chat.admin.memberships,https://www.googleapis.com/auth/chat.admin.memberships.readonly,https://www.googleapis.com/auth/chat.admin.spaces,https://www.googleapis.com/auth/chat.admin.spaces.readonly,https://www.googleapis.com/auth/chat.memberships,https://www.googleapis.com/auth/chat.memberships.app,https://www.googleapis.com/auth/chat.memberships.readonly,https://www.googleapis.com/auth/chat.messages.reactions,https://www.googleapis.com/auth/chat.messages.reactions.create,https://www.googleapis.com/auth/chat.messages.reactions.readonly,https://www.googleapis.com/auth/chat.spaces,https://www.googleapis.com/auth/chat.spaces.create,https://www.googleapis.com/auth/chat.spaces.readonly,https://www.googleapis.com/auth/chat.users.readstate,https://www.googleapis.com/auth/chat.users.readstate.readonly,https://www.googleapis.com/auth/chat.users.spacesettings,https://www.googleapis.com/auth/chat.customemojis,https://www.googleapis.com/auth/chat.customemojis.readonly,https://www.googleapis.com/auth/tasks,https://www.googleapis.com/auth/tasks.readonly,https://www.googleapis.com/auth/pubsub,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/userinfo.profile,https://www.googleapis.com/auth/presentations,https://www.googleapis.com/auth/presentations.readonly,https://www.googleapis.com/auth/contacts,https://www.googleapis.com/auth/contacts.readonly,https://www.googleapis.com/auth/contacts.other.readonly,https://www.googleapis.com/auth/directory.readonly,https://www.googleapis.com/auth/forms.body,https://www.googleapis.com/auth/forms.body.readonly,https://www.googleapis.com/auth/forms.responses.readonly,https://www.googleapis.com/auth/meetings.space.created,https://www.googleapis.com/auth/meetings.space.readonly,https://www.googleapis.com/auth/classroom.courses,https://www.googleapis.com/auth/classroom.courses.readonly,https://www.googleapis.com/auth/admin.reports.audit.readonly,https://www.googleapis.com/auth/admin.reports.usage.readonly,https://www.googleapis.com/auth/chat.bot,https://www.googleapis.com/auth/chat.app.spaces,https://www.googleapis.com/auth/chat.app.memberships,https://www.googleapis.com/auth/chat.import
 ```
 
 </details>
