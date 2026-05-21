@@ -148,11 +148,11 @@ fn build_write_request(
         ]
     });
 
-    let scopes: Vec<String> = batch_update_method
-        .scopes
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+    // 代表スコープ1つだけ返す。Discovery doc の scopes は OR 関係のため、
+    // 全部要求すると DWD で全スコープ承認が必要になり invalid_grant を引き起こす。
+    let scopes: Vec<String> = crate::select_scope(&batch_update_method.scopes)
+        .map(|s| vec![s.to_string()])
+        .unwrap_or_default();
 
     Ok((params.to_string(), body.to_string(), scopes))
 }

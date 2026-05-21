@@ -30,7 +30,10 @@ pub(super) async fn handle_send(
         // gracefully degrades if the token doesn't cover the sendAs.list
         // endpoint.
         let method = super::resolve_mail_method(doc, matches.get_flag("draft"))?;
-        let scopes: Vec<&str> = method.scopes.iter().map(|s| s.as_str()).collect();
+        // Discovery doc の scopes は「いずれか1つで足りる」代替リスト。
+        // 全て渡すと DWD で全スコープ承認が必要になり invalid_grant を引き起こすため、
+        // main.rs::select_scope と同じく先頭（最も広い）スコープ1つだけを要求する。
+        let scopes: Vec<&str> = crate::select_scope(&method.scopes).into_iter().collect();
         let t = auth::get_token(&scopes)
             .await
             .map_err(|e| GwsError::Auth(format!("Gmail auth failed: {e}")))?;

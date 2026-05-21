@@ -511,7 +511,10 @@ fn build_insert_request(
         params["conferenceDataVersion"] = json!(1);
     }
     let body_str = body.to_string();
-    let scopes: Vec<String> = insert_method.scopes.iter().map(|s| s.to_string()).collect();
+    // 代表スコープ1つだけ返す（DWD invalid_grant 回避、Discovery doc は OR 関係）。
+    let scopes: Vec<String> = crate::select_scope(&insert_method.scopes)
+        .map(|s| vec![s.to_string()])
+        .unwrap_or_default();
 
     // events.insert requires 'calendarId' path parameter
     let params_str = params.to_string();

@@ -1447,7 +1447,9 @@ pub(super) async fn dispatch_raw_email(
     let (token, auth_method) = match existing_token {
         Some(t) => (Some(t.to_string()), executor::AuthMethod::OAuth),
         None => {
-            let scopes: Vec<&str> = method.scopes.iter().map(|s| s.as_str()).collect();
+            // Discovery doc の scopes 全部を要求すると DWD で invalid_grant になるため、
+            // 先頭の代表スコープ1つだけを要求する（select_scope と同方針）。
+            let scopes: Vec<&str> = crate::select_scope(&method.scopes).into_iter().collect();
             match auth::get_token(&scopes).await {
                 Ok(t) => (Some(t), executor::AuthMethod::OAuth),
                 Err(e) if matches.get_flag("dry-run") => {

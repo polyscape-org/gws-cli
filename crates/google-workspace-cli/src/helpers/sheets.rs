@@ -230,8 +230,10 @@ fn build_append_request(
         "values": config.values
     });
 
-    // Map `&String` scope URLs to owned `String`s for the return value
-    let scopes: Vec<String> = append_method.scopes.iter().map(|s| s.to_string()).collect();
+    // 代表スコープ1つだけ返す（DWD invalid_grant 回避、Discovery doc は OR 関係）。
+    let scopes: Vec<String> = crate::select_scope(&append_method.scopes)
+        .map(|s| vec![s.to_string()])
+        .unwrap_or_default();
 
     Ok((params.to_string(), body.to_string(), scopes))
 }
@@ -257,7 +259,10 @@ fn build_read_request(
         "range": config.range
     });
 
-    let scopes: Vec<String> = get_method.scopes.iter().map(|s| s.to_string()).collect();
+    // 代表スコープ1つだけ返す（DWD invalid_grant 回避、Discovery doc は OR 関係）。
+    let scopes: Vec<String> = crate::select_scope(&get_method.scopes)
+        .map(|s| vec![s.to_string()])
+        .unwrap_or_default();
 
     Ok((params.to_string(), scopes))
 }

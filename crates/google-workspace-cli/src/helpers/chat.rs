@@ -150,7 +150,10 @@ fn build_send_request(
         "text": config.text
     });
 
-    let scopes: Vec<String> = create_method.scopes.iter().map(|s| s.to_string()).collect();
+    // 代表スコープ1つだけ返す（DWD invalid_grant 回避、Discovery doc は OR 関係）。
+    let scopes: Vec<String> = crate::select_scope(&create_method.scopes)
+        .map(|s| vec![s.to_string()])
+        .unwrap_or_default();
 
     Ok((params.to_string(), body.to_string(), scopes))
 }

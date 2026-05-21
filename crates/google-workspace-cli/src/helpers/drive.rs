@@ -95,7 +95,9 @@ TIPS:
 
                 let body_str = metadata.to_string();
 
-                let scopes: Vec<&str> = create_method.scopes.iter().map(|s| s.as_str()).collect();
+                // 代表スコープ1つだけを要求する（DWD invalid_grant 回避）。
+                let scopes: Vec<&str> =
+                    crate::select_scope(&create_method.scopes).into_iter().collect();
                 let (token, auth_method) = match auth::get_token(&scopes).await {
                     Ok(t) => (Some(t), executor::AuthMethod::OAuth),
                     Err(_) if matches.get_flag("dry-run") => (None, executor::AuthMethod::None),
